@@ -2,7 +2,33 @@
 name = "cryptokeep-cli"
 version = "0.1.0"
 edition = "2021"
+authors = ["Saubhik Singh"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# This is needed for argument parsing
+clap = "2.33.3"
+
+# To show the dialog in the terminal
+dialoguer = "0.9.0"
+console = "0.15.0"
+
+# Encryption
+aes-gcm = "0.9.4"
+base64 = "0.13.0"
+rand = "0.8.4"
+
+# To show the indicator
+indicatif = "0.16.2"
+
+# This ia the db solution
+[dependencies.rusqlite]
+version = "0.26.1"
+features = ["bundled"]
+
+# UUID
+[dependencies.uuid]
+version = "1.0.0-alpha.1"
+features = ["v4"]
+default-features = false
