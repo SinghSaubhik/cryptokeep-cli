@@ -10,9 +10,19 @@ authors = ["Saubhik Singh"]
 # This is needed for argument parsing
 clap = "2.33.3"
 
+# Date time
+chrono = "0.4.19"
+
+# Logger
+log = "0.4.14"
+
 # To show the dialog in the terminal
 dialoguer = "0.9.0"
 console = "0.15.0"
+
+# Error management
+thiserror = "1.0.30"
+anyhow = "1.0"
 
 # Encryption
 aes-gcm = "0.9.4"

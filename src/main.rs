@@ -1,11 +1,33 @@
 use std::error::Error;
-use std::thread::sleep;
-use std::time::Duration;
-use cryptokeep_cli::ui;
+use std::io::Read;
+use std::process::exit;
+use cryptokeep_cli::{ui, dao::Dao};
+use chrono::prelude::*;
+use console::style;
+
 
 fn main() -> Result<(), Box<dyn Error>> {
-    ui::start();
+    let dao: Dao;
+    let db_response = Dao::init();
 
-    sleep(Duration::from_secs(4));
+    match db_response {
+        Ok(d) => { dao = d }
+        Err(e) => {
+            println!("Error occurred while initializing database, err: {:?}", e);
+            exit(0)
+        }
+    }
+
+    loop {
+        ui::start();
+
+        println!("{}", style("\nDo you want to continue ? Y / n\n").cyan());
+        let mut buff = String::new();
+        std::io::stdin().read_line(&mut buff)?;
+
+        if buff == "N\n" || buff == "n\n" {
+            break;
+        }
+    }
     Ok(())
 }

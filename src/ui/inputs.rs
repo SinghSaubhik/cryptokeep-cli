@@ -1,37 +1,31 @@
-use std::io::{stderr, stdout};
-use std::process::exit;
+use crate::Secret;
+use anyhow::{Error, Result};
 use console::Term;
-use dialoguer::Select;
+use dialoguer::{Input, Password, Select};
 use dialoguer::theme::ColorfulTheme;
 
-pub fn draw_option_menu(v: &Vec<&str>) -> Result<usize, std::io::Error> {
+pub fn render_select<T: ToString>(items: &Vec<T>) -> Result<usize> {
     let selection = Select::with_theme(&ColorfulTheme::default())
-        .items(&v)
+        .items(items)
         .default(0)
-        .interact_on_opt(&Term::stderr()).unwrap();
+        .interact_on_opt(&Term::stderr())?;
 
-
-    Ok(selection.unwrap())
+    match selection {
+        Some(s) => Ok(s),
+        None => Err(Error::msg("Error occurred"))
+    }
 }
 
-pub fn start() -> Result<(), std::io::Error> {
-    let term = Term::stdout();
+pub fn text_input_prompt(prompt: &str) -> Result<String> {
+    let user_name: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt(prompt)
+        .interact_text()?;
+    Ok(user_name)
+}
 
-    term.clear_screen();
-    let menu_items = vec!["List Secret", "Add New Secret", "Quit"];
-    let mut selection = draw_option_menu(&menu_items)?;
-
-    while selection!=2 {
-        match selection {
-            0 => println!("We will list your secrets"),
-            1 => println!("Let's add new secret"),
-            2 => exit(0),
-            _ => println!("Invalid input")
-        }
-
-        term.clear_to_end_of_screen();
-        selection = draw_option_menu(&menu_items).unwrap()
-    }
-
-    Ok(())
+pub fn password_input_prompt(prompt: &str) -> Result<String> {
+    let pass = Password::with_theme(&ColorfulTheme::default())
+        .with_prompt(prompt)
+        .interact()?;
+    Ok(pass)
 }
