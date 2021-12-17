@@ -16,6 +16,9 @@ chrono = "0.4.19"
 # Logger
 log = "0.4.14"
 
+# Clipboard
+arboard = "2.0.1"
+
 # To show the dialog in the terminal
 dialoguer = "0.9.0"
 console = "0.15.0"

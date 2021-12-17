@@ -49,8 +49,8 @@ pub mod mutate_secret {
             }
         }
 
-        let title = text_input_prompt("Enter title")?;
-        let user_name = text_input_prompt("Enter User Name")?;
+        let title = text_input_prompt("Enter title", None)?;
+        let user_name = text_input_prompt("Enter User Name", None)?;
         let user_password = password_input_prompt("Enter password")?;
 
         let secret = Secret::new(
@@ -70,21 +70,30 @@ pub mod mutate_secret {
 pub mod secrets_screen {
     use std::process::exit;
     use anyhow::Result;
+    use arboard::Clipboard;
     use console::{Attribute, Color, style, Term};
     use log::info;
-    use crate::{Dao, Secret};
-    use crate::ui::render_select;
+    use crate::{Dao, Level, Secret, write_color};
+    use crate::ui::{password_input_prompt, render_select, text_input_prompt};
 
     fn handle_secret_selection(u: usize, secrets: &Vec<Secret>) {}
 
     pub fn draw() -> Result<()> {
         let dao = Dao::new()?;
-        let items = dao.list_secrets()?;
+        let mut items = dao.list_secrets()?;
+
+        // TODO: This is a hack, needs to fix later
+        let main_menu = Secret::new("Main menu", "", "");
+        items.push(main_menu);
 
         Term::stdout().clear_screen()?;
         let selection = render_select(&items)?;
         match selection {
-            _ => { draw_secret(&items[selection])? }
+            _ => if selection == items.len() - 1 {
+                return Ok(());
+            } else {
+                draw_secret(&items[selection])?
+            }
         }
         Ok(())
     }
@@ -96,7 +105,7 @@ pub mod secrets_screen {
 
 
         println!(
-            "\nSecret: {}\n",
+            "\n  Secret: {}\n",
             style(&secret.title).bright().attr(Attribute::Bold).bg(Color::Blue)
         );
 
@@ -105,14 +114,85 @@ pub mod secrets_screen {
         let n = items.len();
 
         match s {
+            0 => reveal_secret(secret),
+            1 => { copy_password(secret)?; }
+            2 => { draw_update_secret(secret)?; }
+            3 => { delete_secret(secret)?; }
             _ => if s == n - 1 {
                 info!("Shutting down...");
                 exit(0);
-            } else {
-                // println!("\u{1b}[0m\u{1b}[44;38;5;15mCargo.lock\u{1b}[0m");
-                println!("{}", style(format!("You have selected: {}", &items[s])).green());
             }
         }
+
+        Ok(())
+    }
+
+    fn reveal_secret(secret: &Secret) {
+        write_color(format!("Username: {}", secret.user_name.clone()), Level::BRIGHTBOLD);
+        write_color(format!("Password: {}", secret.password.clone()), Level::BRIGHTBOLD);
+    }
+
+    fn copy_password(secret: &Secret) -> Result<()> {
+        let mut clipboard = Clipboard::new()?;
+        clipboard.set_text(secret.password.clone());
+
+        println!("  {}  ", style("Password copied to clipboard").green());
+        Ok(())
+    }
+
+    fn draw_update_secret(existing_secret: &Secret) -> Result<()> {
+        let dao = Dao::new()?;
+
+        let new_title = text_input_prompt(
+            "Update your title",
+            Some(existing_secret.title.as_str()),
+        )?;
+
+        let new_username = text_input_prompt(
+            "Update username",
+            Some(existing_secret.user_name.as_str()),
+        )?;
+
+        let password = password_input_prompt("Enter new password")?;
+
+        let updated_secret = existing_secret.update(
+            new_title,
+            new_username,
+            password,
+        );
+
+        dao.update_secret(updated_secret)?;
+
+        write_color("\nSuccessfully updated the secret", Level::SUCCESS);
+
+        Ok(())
+    }
+
+    fn delete_secret(secret: &Secret) -> Result<()> {
+        let dao = Dao::new()?;
+        write_color(
+            format!(
+                "Please enter the title to confirm and delete: {}",
+                style(&secret.title).bold().bright()
+            ),
+            Level::INFO,
+        );
+
+        loop {
+            let confirmation_title = text_input_prompt(
+                "Enter title to confirm",
+                None,
+            )?;
+
+            if confirmation_title == secret.title {
+                break;
+            }
+            write_color("\n  Entered title does not match\n", Level::ERROR);
+        }
+
+        // Delete here
+        dao.delete_secret(secret.id.as_str());
+        write_color("\n  Successfully deleted...", Level::SUCCESS);
 
         Ok(())
     }

@@ -24,6 +24,17 @@ impl Secret {
             updated_at: current_date_time,
         }
     }
+
+    pub fn update(&self, title: String, user_name: String, password: String) -> Self {
+        Self {
+            id: self.id.clone(),
+            title,
+            user_name,
+            password,
+            created_at: self.created_at.clone(),
+            updated_at: current_date_time(),
+        }
+    }
 }
 
 impl ToString for Secret {

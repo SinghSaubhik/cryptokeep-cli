@@ -1,7 +1,9 @@
+use std::fmt::Display;
 use anyhow::Result;
 use std::os;
 use std::path::{Path, PathBuf};
 use chrono::prelude::*;
+use console::{style, Style};
 
 
 fn fallback_path() -> PathBuf {
@@ -33,4 +35,24 @@ pub fn get_home_dir_path() -> Result<PathBuf> {
 pub fn current_date_time() -> String {
     let local = Local::now();
     local.to_string()
+}
+
+pub enum Level {
+    ERROR,
+    SUCCESS,
+    INFO,
+    BRIGHTBOLD,
+}
+
+pub fn write_color<T: Display>(msg: T, level: Level) {
+    let mut st;
+
+    match level {
+        Level::INFO => { st = style(msg).bright().cyan(); }
+        Level::SUCCESS => { st = style(msg).bright().green(); }
+        Level::ERROR => { st = style(msg).red().bright(); }
+        Level::BRIGHTBOLD => { st = style(msg).bold().bright() }
+    }
+
+    println!("  {}  ", st);
 }

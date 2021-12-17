@@ -83,4 +83,26 @@ impl Dao {
         )?;
         Ok(())
     }
+
+    pub fn update_secret(&self, secret: Secret) -> Result<()> {
+        self.connection.execute(
+            "UPDATE secrets SET title=?1, user_name=?2, password=?3, updated_at=?4 WHERE id=?5",
+            [
+                secret.title,
+                secret.user_name,
+                secret.password,
+                secret.updated_at,
+                secret.id
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_secret(&self, id: &str) -> Result<()> {
+        self.connection.execute(
+            "DELETE FROM secrets WHERE id=?1",
+            [id],
+        )?;
+        Ok(())
+    }
 }

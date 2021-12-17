@@ -16,9 +16,13 @@ pub fn render_select<T: ToString>(items: &Vec<T>) -> Result<usize> {
     }
 }
 
-pub fn text_input_prompt(prompt: &str) -> Result<String> {
+pub fn text_input_prompt(prompt: &str, existing_content: Option<&str>) -> Result<String> {
+
+    let content = existing_content.unwrap_or("");
+
     let user_name: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
+        .with_initial_text(content)
         .interact_text()?;
     Ok(user_name)
 }
