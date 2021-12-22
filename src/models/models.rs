@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::current_date_time;
 
@@ -90,4 +91,10 @@ impl Debug for Response {
             self.component, self.selection).as_str()
         )
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct KeyFileData {
+    pub hashed_key: String,
+    pub master_key_cipher: String,
 }
