@@ -1,5 +1,3 @@
-use console::Term;
-
 pub mod home_screen {
     use std::process::exit;
     use console::Term;
@@ -9,8 +7,8 @@ pub mod home_screen {
 
     fn handle_home_selection(selection: usize) -> Result<()> {
         match selection {
-            0 => { secrets_screen::draw(); }
-            1 => { mutate_secret::add_new_secret(); }
+            0 => { secrets_screen::draw()?; }
+            1 => { mutate_secret::add_new_secret()?; }
             2 => {
                 println!("Shutting down...");
                 exit(0)
@@ -23,9 +21,10 @@ pub mod home_screen {
     pub fn draw() -> Result<()> {
         let items = vec!["List Secrets", "Add New Secret", "Quit"];
 
-        Term::stdout().clear_screen()?;
+        let stdout = Term::stdout();
+        stdout.clear_screen()?;
         let selection = render_select(&items)?;
-        handle_home_selection(selection);
+        handle_home_selection(selection)?;
         Ok(())
     }
 }
@@ -76,8 +75,6 @@ pub mod secrets_screen {
     use crate::{Dao, Level, Secret, write_color};
     use crate::ui::{password_input_prompt, render_select, text_input_prompt};
 
-    fn handle_secret_selection(u: usize, secrets: &Vec<Secret>) {}
-
     pub fn draw() -> Result<()> {
         let dao = Dao::new()?;
         let mut items = dao.list_secrets()?;
@@ -99,7 +96,7 @@ pub mod secrets_screen {
     }
 
     pub fn draw_secret(secret: &Secret) -> Result<()> {
-        let dao = Dao::new()?;
+        // let dao = Dao::new()?;
         let items = vec!["Reveal Password", "Copy password", "Update", "Delete", "Quit"];
         Term::stdout().clear_to_end_of_screen()?;
 
@@ -134,7 +131,7 @@ pub mod secrets_screen {
 
     fn copy_password(secret: &Secret) -> Result<()> {
         let mut clipboard = Clipboard::new()?;
-        clipboard.set_text(secret.password.clone());
+        clipboard.set_text(secret.password.clone())?;
 
         println!("  {}  ", style("Password copied to clipboard").green());
         Ok(())
@@ -191,8 +188,74 @@ pub mod secrets_screen {
         }
 
         // Delete here
-        dao.delete_secret(secret.id.as_str());
+        dao.delete_secret(secret.id.as_str())?;
         write_color("\n  Successfully deleted...", Level::SUCCESS);
+
+        Ok(())
+    }
+}
+
+pub mod onboard_screen {
+    use anyhow::Result;
+    use base64::encode;
+    use console::{Term};
+    use rand::RngCore;
+    use sha2::{Sha512, Digest, Sha256};
+    use crate::{EncryptionProvider, get_component_path, Level, write_color};
+    use crate::constants::PASSWORD_FILE_NAME;
+    use crate::ui::{password_input_prompt, text_input_prompt};
+
+    fn store_encryption_key(password: &str) -> Result<()> {
+        let mut key = [0_u8; 32];
+        rand::thread_rng().fill_bytes(&mut key);
+        let encoded = encode(&key);
+
+        // EncryptionProvider::new()
+
+        Ok(())
+    }
+
+    fn save_user_info(name: &str, password: &str) -> Result<()> {
+        // TODO: Save this name into DB
+        println!("{}", name);
+
+        let mut hash = Sha256::new();
+        hash.update(password.as_bytes());
+
+        let hashed = hash.finalize();
+        let encoded = encode(hashed);
+        let comp_path = get_component_path(PASSWORD_FILE_NAME).unwrap();
+
+        std::fs::write(comp_path, encoded).unwrap();
+
+        Ok(())
+    }
+
+
+    pub fn draw() -> Result<()> {
+        Term::stdout().clear_screen()?;
+        write_color("Welcome to Cryptokeep\n", Level::BRIGHTBOLD);
+        write_color(
+            "Let's collect some basic info about you, shall we ?\n\n",
+            Level::SUCCESS,
+        );
+
+        let name = text_input_prompt("Enter your name", None)?;
+        let mut user_pass: String;
+
+        loop {
+            user_pass = password_input_prompt("Enter master password")?;
+            let confirm = password_input_prompt("Re-enter master password")?;
+
+            if user_pass != confirm {
+                write_color("Password does not match\n", Level::ERROR);
+            }else {
+                break
+            }
+        }
+
+        save_user_info(&name, &user_pass).unwrap();
+        println!("{}", name);
 
         Ok(())
     }
