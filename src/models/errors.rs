@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
@@ -12,7 +11,6 @@ impl Display for UIError {
         f.write_str(self.message.as_str())
     }
 }
-
 
 #[derive(Debug)]
 pub enum EncryptionErrorType {
@@ -38,13 +36,6 @@ impl EncryptionError {
 
 impl Display for EncryptionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(
-            format!(
-                "Encryption Error occured: message: {}",
-                self.message
-            ).as_str()
-        )
+        f.write_str(format!("Encryption Error occured: message: {}", self.message).as_str())
     }
 }
-
-impl Error for EncryptionError {}

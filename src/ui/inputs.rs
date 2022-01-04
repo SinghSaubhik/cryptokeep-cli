@@ -1,4 +1,3 @@
-use crate::Secret;
 use anyhow::{Error, Result};
 use console::Term;
 use dialoguer::{Input, Password, Select};
