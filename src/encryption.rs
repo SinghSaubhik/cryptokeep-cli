@@ -1,70 +1,63 @@
 //! This module is used for encryption services
 
-use std::fs;
-
-use aes_gcm::Nonce;
-use anyhow::{Error, Result};
-use serde_json::Value;
-use sha2::{Sha256, Digest};
-use sha2::digest::Update;
-use crate::{EncryptionError, EncryptionErrorType, KeyFileData};
+use aes_gcm::{Aes256Gcm, Key, Nonce};
+use aes_gcm::aead::{Aead, NewAead};
+use anyhow::{Result};
+use base64::{encode, decode};
+use rand::{RngCore, thread_rng};
 
 pub trait Encryptor {
-    fn new(user_password: String) -> Self;
-    fn encrypt(&mut self, plaintext: String) -> Result<()>;
-    fn decrypt(&mut self, cipher_text: String) -> Result<()>;
+    fn encrypt(&self, plaintext: &str) -> Result<String>;
+    fn decrypt(&self, cipher_text: &str) -> Result<String>;
 }
 
-pub struct EncryptionService {
+pub struct EncryptionProvider {
     key: String,
-    nonce: String,
 }
 
-fn get_api_key(pass: String) -> Vec<u8> {
-    Vec::new()
+impl EncryptionProvider {
+    pub fn new(key: String) -> EncryptionProvider {
+        EncryptionProvider { key }
+    }
+
+    fn get_cipher(&self) -> Aes256Gcm {
+        let key = Key::from_slice(self.key.as_bytes());
+        let cipher = Aes256Gcm::new(key);
+        cipher
+    }
 }
 
-fn match_password(user_password: String) -> Result<KeyFileData> {
-    let io = fs::read("test.key")?;
-    let file_data_value: Value = serde_json::from_slice(io.as_slice())?;
+impl Encryptor for EncryptionProvider {
+    fn encrypt(&self, plaintext: &str) -> Result<String> {
+        let cipher: Aes256Gcm = self.get_cipher();
+        let mut random_bytes = [0u8; 12];
+        thread_rng().fill_bytes(&mut random_bytes);
 
-    let file_data = KeyFileData {
-        hashed_key: file_data_value["hashed_key"].to_string(),
-        master_key_cipher: file_data_value["master_key_cipher"].to_string(),
-    };
+        println!("{}", &random_bytes.len());
 
-    let mut sha = Sha256::new();
-    sha.update(user_password.as_bytes());
-    let hashed_user_password = sha.finalize();
+        let nonce = Nonce::from_slice(&random_bytes);
 
-    if file_data.hashed_key != hashed_user_password {
-        return Err(
-            Error::new(
-                EncryptionError::new(
-                    String::from("Incorrect password"),
-                    EncryptionErrorType::WrongPassword,
-                )
-            )
-        );
+        let encrypted = cipher.encrypt(nonce, plaintext.as_ref())
+            .expect("Error while encrypting");
+
+        let result = format!("{}:{}", encode(nonce), encode(encrypted));
+        Ok(result)
     }
 
-    Ok(KeyFileData { hashed_key: "".to_string(), master_key_cipher: "".to_string() })
-}
+    fn decrypt(&self, cipher_text: &str) -> Result<String> {
+        let split_data: Vec<&str> = cipher_text.split(":").collect();
+        let nonce_vec = decode(&split_data[0])?;
+        let nonce = Nonce::from_slice(nonce_vec.as_slice());
+        let decoded_cipher = decode(&split_data[1])?;
 
-impl Encryptor for EncryptionService {
-    fn new(user_password: String) -> Self {
-        Self {
-            key: String::from(""),
-            nonce: String::from(""),
-        }
-    }
+        // let key = Key::from_slice(self.key.as_bytes());
+        // let cipher = Aes256Gcm::new(key);
+        let cipher: Aes256Gcm = self.get_cipher();
+        let decrypted_data = cipher.decrypt(
+            nonce,
+            decoded_cipher.as_slice(),
+        ).expect("Unable to decrypt");
 
-
-    fn encrypt(&mut self, plaintext: String) -> Result<()> {
-        todo!()
-    }
-
-    fn decrypt(&mut self, cipher_text: String) -> Result<()> {
-        todo!()
+        Ok(String::from_utf8(decrypted_data)?)
     }
 }

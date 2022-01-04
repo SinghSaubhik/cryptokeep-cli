@@ -2,12 +2,12 @@ use std::path::PathBuf;
 use rusqlite::{Connection, params};
 use anyhow::Result;
 use crate::Secret;
-use crate::get_home_dir_path;
+use crate::get_app_dir_path;
 
 const DB_NAME: &'static str = "cryptokeep.db";
 
 fn get_db_path() -> Result<PathBuf> {
-    let mut home_dir = get_home_dir_path()?;
+    let mut home_dir = get_app_dir_path()?;
     home_dir.push(DB_NAME);
     Ok(home_dir)
 }
